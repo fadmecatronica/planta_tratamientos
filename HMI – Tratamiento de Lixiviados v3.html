@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HMI – Tratamiento de Lixiviados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080c10;
+  --surface:#0e1419;
+  --surface2:#141c24;
+  --surface3:#1a2535;
+  --border:#1f2d3d;
+  --border2:#263547;
+  --text:#c8dce8;
+  --text2:#6b8fa8;
+  --text3:#3a5168;
+  --accent:#00d4ff;
+  --accent2:#0099bb;
+  --green:#00c97a;
+  --green-dim:#003d24;
+  --red:#ff4757;
+  --red-dim:#3d0010;
+  --amber:#ffb300;
+  --amber-dim:#3d2a00;
+  --blue:#3d8bff;
+  --r:8px;
+  --font:'Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+
+html{background:#040608}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  font-size:13px;
+  padding:0;
+  min-height:100vh;
+  line-height:1.4;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── HEADER ── */
+.hdr{
+  background:linear-gradient(180deg,#0c1620 0%,#080c10 100%);
+  border-bottom:1px solid var(--border);
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  position:sticky;
+  top:0;
+  z-index:100;
+}
+.hdr-left{display:flex;align-items:center;gap:10px}
+.hdr-logo{
+  width:32px;height:32px;border-radius:6px;
+  background:linear-gradient(135deg,var(--accent2) 0%,var(--accent) 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.hdr-title{font-size:12px;font-weight:600;color:#e0eef5;letter-spacing:.3px}
+.hdr-sub{font-size:10px;color:var(--text3);margin-top:1px;font-weight:400}
+.hdr-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.status-pill{
+  display:flex;align-items:center;gap:5px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:4px 10px;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.status-text{font-size:10px;font-weight:500;color:var(--green)}
+.clock{font-family:var(--mono);font-size:11px;color:var(--text3)}
+
+/* ── TABS ── */
+.tabs{
+  display:flex;
+  gap:0;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 14px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.tab{
+  padding:10px 14px;
+  border:none;
+  background:none;
+  color:var(--text3);
+  font-size:11px;
+  font-weight:500;
+  font-family:var(--font);
+  cursor:pointer;
+  white-space:nowrap;
+  border-bottom:2px solid transparent;
+  transition:color .15s,border-color .15s;
+  letter-spacing:.3px;
+  -webkit-tap-highlight-color:transparent;
+}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ── LAYOUT ── */
+.content{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.screen{display:none}.screen.active{display:flex;flex-direction:column;gap:10px}
+
+/* ── CARDS ── */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  overflow:hidden;
+}
+.card-head{
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.card-title{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.4px}
+.card-body{padding:12px 14px}
+
+/* ── MODE BAR ── */
+.mode-row{display:flex;gap:6px}
+.mode-btn{
+  flex:1;padding:8px 6px;
+  border-radius:6px;
+  border:1px solid var(--border2);
+  background:var(--surface2);
+  color:var(--text2);
+  font-size:11px;font-weight:600;
+  font-family:var(--font);
+  cursor:pointer;
+  transition:all .15s;
+  -webkit-tap-highlight-color:transparent;
+  letter-spacing:.3px;
+}
+.mode-btn.active.auto{background:#001d2e;border-color:var(--accent);color:var(--accent)}
+.mode-btn.active.manual{background:#2a1a00;border-color:var(--amber);color:var(--amber)}
+.mode-btn.active.emg{background:var(--red-dim);border-color:var(--red);color:var(--red)}
+.mode-btn.emg{color:var(--red);border-color:#3d1520}
+.mode-status{display:flex;align-items:center;gap:8px;padding-top:10px;font-size:11px;color:var(--text3)}
+.mode-status span{color:var(--text2);font-weight:500}
+.alarm-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;border-radius:9px;
+  background:var(--amber-dim);color:var(--amber);
+  font-size:10px;font-weight:700;padding:0 5px;
+}
+
+/* ── P&ID SVG ── */
+.pid-wrap{background:#040810;width:100%;overflow:hidden}
+svg.pid{display:block;width:100%}
+
+/* ── EQUIPMENT GRID ── */
+.eq-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.eq-card{
+  border-radius:7px;
+  border:1px solid var(--border);
+  background:var(--surface2);
+  padding:10px 10px 8px;
+  cursor:pointer;
+  transition:border-color .15s,background .15s;
+  position:relative;
+  -webkit-tap-highlight-color:transparent;
+}
+.eq-card:active{transform:scale(.97)}
+.eq-card.run{border-color:var(--green-dim);background:#010f07}
+.eq-card.run:hover{border-color:var(--green)}
+.eq-card.stop{border-color:var(--border);background:var(--surface2)}
+.eq-card.fault{border-color:var(--red);background:var(--red-dim);animation:blink .7s step-end infinite}
+@keyframes blink{50%{opacity:.6}}
+.eq-tag{
+  position:absolute;top:7px;right:8px;
+  font-size:9px;padding:2px 6px;border-radius:3px;
+  background:#001830;color:var(--blue);font-weight:500;
+  letter-spacing:.3px;
+}
+.eq-icon{font-size:22px;margin-bottom:4px;line-height:1}
+.eq-name{font-size:10px;font-weight:600;color:var(--text);margin-bottom:3px}
+.eq-state{font-size:11px;font-weight:700}
+.eq-state.on{color:var(--green)}
+.eq-state.off{color:var(--text3)}
+.eq-state.fault{color:var(--red)}
+.eq-amp{font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+
+/* ── ANALOG VALUES ── */
+.an-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.an-card{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:7px;
+  padding:10px 12px;
+}
+.an-label{font-size:9px;color:var(--text3);letter-spacing:.3px;margin-bottom:6px;font-weight:500}
+.an-value{font-size:24px;font-weight:700;font-family:var(--mono);line-height:1;color:var(--accent)}
+.an-unit{font-size:10px;color:var(--text2);font-weight:400;font-family:var(--font);margin-left:2px}
+.bar{background:#050d18;border-radius:3px;height:3px;margin-top:8px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.bar-fill.ok{background:var(--green)}
+.bar-fill.warn{background:var(--amber)}
+.bar-fill.crit{background:var(--red)}
+
+/* ── FLOAT INDICATORS (boyas) ── */
+.boya-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.boya{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:8px 4px;
+  border-radius:7px;border:1px solid var(--border);
+  background:var(--surface2);
+}
+.boya-led{
+  width:10px;height:10px;border-radius:50%;
+  transition:all .3s;
+}
+.boya-led.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+.boya-led.off{background:#1a2535}
+.boya-lbl{font-size:8px;color:var(--text3);text-align:center;font-weight:500;line-height:1.3}
+
+/* ── pH DISPLAY ── */
+.ph-strip{
+  display:flex;height:8px;border-radius:4px;overflow:hidden;
+  margin:6px 0 3px;gap:1px;
+}
+.ph-seg{flex:1;border-radius:1px}
+.ph-ptr{position:relative;height:8px;margin-bottom:4px}
+.ph-ndl{
+  position:absolute;width:2px;height:12px;
+  background:#fff;border-radius:1px;
+  top:-4px;transition:left .5s ease;transform:translateX(-50%);
+}
+
+/* ── SETPOINTS ── */
+.sp-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.sp-row label{font-size:9px;color:var(--text3);white-space:nowrap;font-weight:500;letter-spacing:.3px}
+.sp-row input[type=range]{
+  flex:1;height:3px;border-radius:3px;
+  accent-color:var(--accent);
+  background:var(--border);
+}
+.sp-val{font-size:11px;font-weight:600;color:var(--accent);font-family:var(--mono);min-width:44px;text-align:right}
+
+/* ── ALARMS ── */
+.al-list{display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto}
+.al{display:flex;gap:8px;align-items:flex-start;padding:6px 10px;border-radius:5px;font-size:10px;line-height:1.4}
+.al.crit{background:#1a0308;border-left:2px solid var(--red);color:#ff8a8a}
+.al.warn{background:#1a1200;border-left:2px solid var(--amber);color:#ffcc60}
+.al.ok{background:#01110a;border-left:2px solid var(--green);color:#60cc90}
+.al-time{font-family:var(--mono);font-size:9px;color:var(--text3);white-space:nowrap;padding-top:1px}
+
+/* ── CAMION ── */
+.trk-state{
+  font-size:13px;font-weight:700;
+  padding:3px 0;
+  transition:color .3s;
+}
+.trk-btn{
+  flex:1;padding:13px;border-radius:7px;
+  font-size:12px;font-weight:700;font-family:var(--font);
+  cursor:pointer;transition:all .15s;
+  -webkit-tap-highlight-color:transparent;
+  letter-spacing:.3px;
+}
+.trk-btn.start{background:var(--green-dim);border:2px solid var(--green);color:var(--green)}
+.trk-btn.stop{background:var(--red-dim);border:2px solid var(--red);color:var(--red)}
+.trk-btn:active{transform:scale(.97)}
+.trk-hint{font-size:9px;color:var(--text3);text-align:center;margin-top:6px;line-height:1.4}
+
+/* ── FOOTER ── */
+.footer{
+  font-size:9px;color:var(--text3);
+  text-align:center;padding:10px 14px 14px;
+  letter-spacing:.3px;
+  border-top:1px solid var(--border);
+}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+@media(min-width:480px){
+  .eq-grid{grid-template-columns:repeat(3,1fr)}
+  .an-grid{grid-template-columns:repeat(3,1fr)}
+  .boya-grid{grid-template-columns:repeat(8,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-logo">💧</div>
+    <div>
+      <div class="hdr-title">Planta Tratamiento Lixiviados</div>
+      <div class="hdr-sub">PLC S7-1200 · HMI KTP700 · IP65</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="status-pill">
+      <div class="dot" id="dot"></div>
+      <span class="status-text" id="connLbl">EN LÍNEA</span>
+    </div>
+    <div class="clock" id="clk">--:--:--</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('vista',this)">Vista P&amp;ID</div>
+  <div class="tab" onclick="showTab('bombas',this)">Bombas</div>
+  <div class="tab" onclick="showTab('vars',this)">Variables</div>
+  <div class="tab" onclick="showTab('camion',this)">Camión</div>
+</div>
+
+<div class="content">
+
+<!-- ══ TAB 1: P&ID ══ -->
+<div class="screen active" id="sc-vista">
+
+  <!-- MODO -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Control de modo</span>
+      <span class="alarm-badge" id="alCount">0</span>
+    </div>
+    <div class="card-body">
+      <div class="mode-row">
+        <button class="mode-btn active auto" id="mAuto" onclick="setMode('auto')">AUTO</button>
+        <button class="mode-btn" id="mMan" onclick="setMode('manual')">MANUAL</button>
+        <button class="mode-btn emg" id="mStop" onclick="setMode('stop')">PARO EMG</button>
+      </div>
+      <div class="mode-status">
+        Modo activo: <span id="modeLbl">AUTOMÁTICO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIAGRAMA -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">Vista de planta — P&amp;ID</span></div>
+    <div class="pid-wrap">
+      <svg class="pid" viewBox="0 0 370 480" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round"/>
+          </marker>
+          <pattern id="lixPat" width="6" height="6" patternUnits="userSpaceOnUse">
+            <rect width="6" height="6" fill="#060f0a"/>
+            <circle cx="3" cy="3" r="1" fill="#0d1f12" opacity=".8"/>
+          </pattern>
+          <linearGradient id="gLag" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0d2018"/><stop offset="1" stop-color="#050e0a"/>
+          </linearGradient>
+        </defs>
+
+        <!-- LAGUNAS -->
+        <rect x="8" y="8" width="168" height="70" rx="5" fill="url(#lixPat)" stroke="#1a3a28" stroke-width="1.5"/>
+        <text x="92" y="22" fill="#2a5a3a" font-size="8" text-anchor="middle" font-weight="600" font-family="Inter">LAGUNA 1</text>
+        <rect x="12" y="30" width="160" height="42" rx="3" fill="url(#gLag)" opacity=".9"/>
+        <text x="92" y="52" fill="#3a7a52" font-size="8" text-anchor="middle" id="lagTxt1">Nivel: 74% · B1✓ B2✓</text>
+
+        <rect x="185" y="8" width="178" height="70" rx="5" fill="url(#lixPat)" stroke="#1a3a28" stroke-width="1.5"/>
+        <text x="274" y="22" fill="#2a5a3a" font-size="8" text-anchor="middle" font-weight="600" font-family="Inter">LAGUNA 2</text>
+        <rect x="189" y="30" width="170" height="42" rx="3" fill="url(#gLag)" opacity=".9"/>
+        <text x="274" y="52" fill="#3a7a52" font-size="8" text-anchor="middle" id="lagTxt2">Nivel: 61% · B3✓ B4✓</text>
+
+        <!-- BOMBAS LAGUNAS -->
+        <circle cx="55" cy="98" r="10" fill="#060f18" stroke="#00d4ff" stroke-width="1.5" id="svgB01"/>
+        <text x="55" y="95" fill="#80d8ef" font-size="6.5" text-anchor="middle" font-weight="700" font-family="Inter">B-01</text>
+        <text x="55" y="106" fill="#00d4ff" font-size="6" text-anchor="middle" id="svgB01st">ON</text>
+        <line x1="55" y1="78" x2="55" y2="87" stroke="#ff4757" stroke-width="2.5" marker-end="url(#arr)"/>
+
+        <circle cx="130" cy="98" r="10" fill="#060f18" stroke="#00d4ff" stroke-width="1.5" id="svgB02"/>
+        <text x="130" y="95" fill="#80d8ef" font-size="6.5" text-anchor="middle" font-weight="700" font-family="Inter">B-02</text>
+        <text x="130" y="106" fill="#00d4ff" font-size="6" text-anchor="middle" id="svgB02st">ON</text>
+        <line x1="130" y1="78" x2="130" y2="87" stroke="#ff4757" stroke-width="2.5" marker-end="url(#arr)"/>
+
+        <circle cx="225" cy="98" r="10" fill="#060f18" stroke="#00d4ff" stroke-width="1.5" id="svgB03"/>
+        <text x="225" y="95" fill="#80d8ef" font-size="6.5" text-anchor="middle" font-weight="700" font-family="Inter">B-03</text>
+        <text x="225" y="106" fill="#00d4ff" font-size="6" text-anchor="middle" id="svgB03st">ON</text>
+        <line x1="225" y1="78" x2="225" y2="87" stroke="#ff4757" stroke-width="2.5" marker-end="url(#arr)"/>
+
+        <circle cx="310" cy="98" r="10" fill="#060f18" stroke="#00d4ff" stroke-width="1.5" id="svgB04"/>
+        <text x="310" y="95" fill="#80d8ef" font-size="6.5" text-anchor="middle" font-weight="700" font-family="Inter">B-04</text>
+        <text x="310" y="106" fill="#00d4ff" font-size="6" text-anchor="middle" id="svgB04st">ON</text>
+        <line x1="310" y1="78" x2="310" y2="87" stroke="#ff4757" stroke-width="2.5" marker-end="url(#arr)"/>
+
+        <!-- COLECTOR -->
+        <rect x="44" y="108" width="278" height="6" rx="3" fill="#7a1515"/>
+        <text x="183" y="120" fill="#993030" font-size="7" text-anchor="middle" font-family="Inter">COLECTOR PRINCIPAL — Ø63mm</text>
+        <rect x="170" y="104" width="28" height="11" rx="2" fill="#111108" stroke="#ffb300" stroke-width="1"/>
+        <text x="184" y="112" fill="#ffb300" font-size="7" text-anchor="middle" font-family="Inter" font-weight="600">pH-01</text>
+
+        <!-- DOSIFICADORES -->
+        <rect x="20" y="128" width="60" height="80" rx="4" fill="none" stroke="#1a4a1a" stroke-width="1" stroke-dasharray="4,3"/>
+        <polygon points="30,136 70,136 62,165 38,165" fill="#c8bc80" stroke="#807850" stroke-width="1"/>
+        <rect x="38" y="165" width="24" height="18" fill="#b8ac70" stroke="#807850" stroke-width="1"/>
+        <rect x="42" y="130" width="16" height="7" rx="2" fill="#0a2a80" stroke="#3060c0" stroke-width="1" id="svgM01r"/>
+        <text x="50" y="220" fill="#c8dce8" font-size="7.5" text-anchor="middle" font-weight="600" font-family="Inter">DOSIF-1</text>
+        <text x="50" y="230" fill="#3a5168" font-size="6.5" text-anchor="middle" font-family="Inter">Cal/Cloruro</text>
+        <line x1="50" y1="183" x2="50" y2="197" stroke="#00c97a" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="290" y="128" width="60" height="80" rx="4" fill="none" stroke="#1a4a1a" stroke-width="1" stroke-dasharray="4,3"/>
+        <polygon points="300,136 340,136 332,165 308,165" fill="#c8bc80" stroke="#807850" stroke-width="1"/>
+        <rect x="308" y="165" width="24" height="18" fill="#b8ac70" stroke="#807850" stroke-width="1"/>
+        <rect x="312" y="130" width="16" height="7" rx="2" fill="#0a2a80" stroke="#3060c0" stroke-width="1" id="svgM02r"/>
+        <text x="320" y="220" fill="#c8dce8" font-size="7.5" text-anchor="middle" font-weight="600" font-family="Inter">DOSIF-2</text>
+        <text x="320" y="230" fill="#3a5168" font-size="6.5" text-anchor="middle" font-family="Inter">Polímero</text>
+        <line x1="320" y1="183" x2="320" y2="197" stroke="#00c97a" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="155" y="128" width="50" height="65" rx="4" fill="none" stroke="#1a4a1a" stroke-width="1" stroke-dasharray="4,3"/>
+        <polygon points="162,135 198,135 193,158 167,158" fill="#beb078" stroke="#807850" stroke-width=".8"/>
+        <rect x="167" y="158" width="26" height="14" fill="#aaa068" stroke="#807850" stroke-width=".8"/>
+        <text x="178" y="220" fill="#c8dce8" font-size="7.5" text-anchor="middle" font-weight="600" font-family="Inter">DOSIF-3</text>
+        <line x1="178" y1="172" x2="178" y2="197" stroke="#00c97a" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- REACTOR -->
+        <rect x="80" y="195" width="200" height="36" rx="6" fill="#060e0a" stroke="#00c97a" stroke-width="1.5"/>
+        <text x="180" y="210" fill="#80d4a8" font-size="8" text-anchor="middle" font-weight="600" font-family="Inter">REACTOR — MEZCLA RÁPIDA</text>
+        <text x="180" y="223" fill="#3a6a50" font-size="7" text-anchor="middle" id="svgReactor" font-family="Inter">M-01 M-02 M-03 M-04 activos</text>
+        <line x1="80" y1="115" x2="80" y2="197" stroke="#7a1515" stroke-width="2.5"/>
+        <line x1="280" y1="115" x2="280" y2="197" stroke="#7a1515" stroke-width="2.5"/>
+        <line x1="80" y1="197" x2="280" y2="197" stroke="#7a1515" stroke-width="2"/>
+        <rect x="247" y="200" width="28" height="11" rx="2" fill="#111108" stroke="#ffb300" stroke-width="1"/>
+        <text x="261" y="208" fill="#ffb300" font-size="7" text-anchor="middle" font-family="Inter" font-weight="600">pH-02</text>
+
+        <!-- LECHOS -->
+        <rect x="30" y="250" width="148" height="52" rx="6" fill="#06100a" stroke="#1a5a28" stroke-width="1.5"/>
+        <text x="104" y="264" fill="#3a8050" font-size="7.5" text-anchor="middle" font-weight="600" font-family="Inter">LECHO 1</text>
+        <rect x="34" y="268" width="140" height="30" rx="3" fill="#081508" id="svgLech1"/>
+        <text x="104" y="283" fill="#2a6040" font-size="7" text-anchor="middle" font-family="Inter">Nivel: <tspan id="lech1Lvl" fill="#00c97a">82%</tspan> · B5 B6</text>
+        <circle cx="104" cy="318" r="10" fill="#060f18" stroke="#3d8bff" stroke-width="1.5" id="svgB05"/>
+        <text x="104" y="315" fill="#80d0ef" font-size="6.5" text-anchor="middle" font-weight="700" font-family="Inter">B-05</text>
+        <text x="104" y="326" fill="#3d8bff" font-size="6" text-anchor="middle" id="svgB05st">ON</text>
+        <line x1="104" y1="302" x2="104" y2="307" stroke="#1a4a8a" stroke-width="2.5" marker-end="url(#arr)"/>
+
+        <rect x="188" y="250" width="148" height="52" rx="6" fill="#06100a" stroke="#1a5a28" stroke-width="1.5"/>
+        <text x="262" y="264" fill="#3a8050" font-size="7.5" text-anchor="middle" font-weight="600" font-family="Inter">LECHO 2</text>
+        <rect x="192" y="268" width="140" height="30" rx="3" fill="#081508" id="svgLech2"/>
+        <text x="262" y="283" fill="#2a6040" font-size="7" text-anchor="middle" font-family="Inter">Nivel: <tspan id="lech2Lvl" fill="#00c97a">69%</tspan> · B7 B8</text>
+        <circle cx="262" cy="318" r="10" fill="#060f18" stroke="#3d8bff" stroke-width="1.5" id="svgB06"/>
+        <text x="262" y="315" fill="#80d0ef" font-size="6.5" text-anchor="middle" font-weight="700" font-family="Inter">B-06</text>
+        <text x="262" y="326" fill="#3d8bff" font-size="6" text-anchor="middle" id="svgB06st">ON</text>
+        <line x1="262" y1="302" x2="262" y2="307" stroke="#1a4a8a" stroke-width="2.5" marker-end="url(#arr)"/>
+
+        <!-- FLECHAS REACTOR→LECHOS -->
+        <path d="M 180 231 L 104 231" stroke="#00c97a" stroke-width="1.5" fill="none"/>
+        <path d="M 180 231 L 262 231" stroke="#00c97a" stroke-width="1.5" fill="none"/>
+        <line x1="104" y1="231" x2="104" y2="250" stroke="#00c97a" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="262" y1="231" x2="262" y2="250" stroke="#00c97a" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- CISTERNA -->
+        <rect x="60" y="353" width="112" height="12" rx="3" fill="#0d2a14" stroke="#00c97a" stroke-width=".8"/>
+        <polygon points="74,351 158,351 166,366 162,393 155,406 77,406 70,393 66,366" fill="#c8c5b8" stroke="#909080" stroke-width="1.5"/>
+        <clipPath id="cist-clip"><polygon points="74,351 158,351 166,366 162,393 155,406 77,406 70,393 66,366"/></clipPath>
+        <rect x="66" y="366" width="102" height="40" fill="#40a060" opacity=".4" clip-path="url(#cist-clip)" id="cistFill"/>
+        <ellipse cx="116" cy="351" rx="42" ry="5.5" fill="#d0ccb8" stroke="#909080" stroke-width="1"/>
+        <path d="M 116 345 Q 125 337 130 334" stroke="#aa1818" stroke-width="2.5" fill="none"/>
+        <rect x="128" y="329" width="6" height="6" fill="#aa1818"/>
+        <rect x="55" y="377" width="13" height="4" fill="#aa1818"/>
+        <text x="116" y="384" fill="#1a2a18" font-size="8" text-anchor="middle" font-weight="700" font-family="Inter" id="cistLvl">68%</text>
+        <text x="116" y="420" fill="#c8dce8" font-size="8.5" text-anchor="middle" font-weight="600" font-family="Inter">CISTERNA</text>
+        <text x="116" y="432" fill="#3a5168" font-size="7" text-anchor="middle" font-family="Inter">B7/B8 · Tanque poligonal</text>
+
+        <circle cx="50" cy="378" r="9" fill="#060f18" stroke="#00c97a" stroke-width="1.5" id="svgB07"/>
+        <text x="50" y="375" fill="#80d8ef" font-size="6" text-anchor="middle" font-weight="700" font-family="Inter">B-07</text>
+        <text x="50" y="385" fill="#00c97a" font-size="6" text-anchor="middle" id="svgB07st">ON</text>
+
+        <circle cx="182" cy="378" r="9" fill="#060f18" stroke="#00c97a" stroke-width="1.5" id="svgB08"/>
+        <text x="182" y="375" fill="#80d8ef" font-size="6" text-anchor="middle" font-weight="700" font-family="Inter">B-08</text>
+        <text x="182" y="385" fill="#00c97a" font-size="6" text-anchor="middle" id="svgB08st">ON</text>
+
+        <line x1="104" y1="328" x2="104" y2="355" stroke="#1a4a8a" stroke-width="2.5" marker-end="url(#arr)"/>
+        <line x1="262" y1="328" x2="262" y2="355" stroke="#1a4a8a" stroke-width="2.5"/>
+        <line x1="158" y1="355" x2="262" y2="355" stroke="#1a4a8a" stroke-width="2.5" marker-end="url(#arr)"/>
+
+        <!-- TABLERO -->
+        <rect x="282" y="428" width="80" height="44" rx="4" fill="#1a150a" stroke="#4a3520" stroke-width="1.5"/>
+        <rect x="300" y="430" width="42" height="34" rx="3" fill="#0a2a14" stroke="#00c97a" stroke-width="1"/>
+        <text x="321" y="444" fill="#00c97a" font-size="7.5" text-anchor="middle" font-weight="600" font-family="Inter">TABLERO</text>
+        <text x="321" y="455" fill="#3a7050" font-size="6.5" text-anchor="middle" font-family="Inter">PLC S7-1200</text>
+        <text x="321" y="465" fill="#2a4a38" font-size="6.5" text-anchor="middle" font-family="Inter">9 B · 4 MOT</text>
+        <path d="M 280 428 L 364 428 L 342 416 L 300 416 Z" fill="#2a1e0a" stroke="#4a3520" stroke-width="1"/>
+
+        <!-- CAMION DERECHA -->
+        <rect x="282" y="365" width="22" height="26" rx="3" fill="#0e1e3a" stroke="#3d8bff" stroke-width="1"/>
+        <rect x="284" y="368" width="18" height="10" rx="1" fill="#080e20"/>
+        <rect x="304" y="362" width="58" height="30" rx="8" fill="#142038" stroke="#2a5a88" stroke-width="1.5"/>
+        <text x="333" y="379" fill="#5a8ab0" font-size="8" text-anchor="middle" font-weight="600" font-family="Inter">CAMIÓN</text>
+        <circle cx="298" cy="397" r="5" fill="#0a1020" stroke="#3d6080" stroke-width="1"/>
+        <circle cx="318" cy="397" r="5" fill="#0a1020" stroke="#3d6080" stroke-width="1"/>
+        <circle cx="348" cy="397" r="5" fill="#0a1020" stroke="#3d6080" stroke-width="1"/>
+        <path d="M 262 388 Q 270 408 280 390" stroke="#00d4ff" stroke-width="2" fill="none" stroke-dasharray="3,2" id="svgManguera"/>
+
+        <text x="8" y="478" fill="#1a2a38" font-size="7" font-family="Inter">S7-1200 · KTP700 · 9EB + 4MOT + 2pH + 8 Boyas + Llenado Camión</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ALARMAS -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">Alarmas del sistema</span></div>
+    <div class="card-body">
+      <div class="al-list" id="alList">
+        <div class="al ok"><span class="al-time">--:--:--</span><span>Sistema iniciado — Modo AUTO activo</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB 2: BOMBAS ══ -->
+<div class="screen" id="sc-bombas">
+  <div class="card">
+    <div class="card-head"><span class="card-title">Electrobombas trifásicas · 9 unidades</span></div>
+    <div class="card-body">
+      <div class="eq-grid" id="bombasGrid"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">Motores agitadores · 4 unidades</span></div>
+    <div class="card-body">
+      <div class="eq-grid" id="agitGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB 3: VARIABLES ══ -->
+<div class="screen" id="sc-vars">
+  <div class="card">
+    <div class="card-head"><span class="card-title">pH · 2 sensores</span></div>
+    <div class="card-body">
+      <div class="an-grid">
+        <div class="an-card">
+          <div class="an-label">pH-01 · Entrada colector</div>
+          <div><span class="an-value" id="vPH1">7.18</span><span class="an-unit">pH</span></div>
+          <div class="ph-strip">
+            <div class="ph-seg" style="background:#b71c1c"></div>
+            <div class="ph-seg" style="background:#d32f2f"></div>
+            <div class="ph-seg" style="background:#ff5722"></div>
+            <div class="ph-seg" style="background:#ff9800"></div>
+            <div class="ph-seg" style="background:#8bc34a"></div>
+            <div class="ph-seg" style="background:#4caf50"></div>
+            <div class="ph-seg" style="background:#4caf50"></div>
+            <div class="ph-seg" style="background:#8bc34a"></div>
+            <div class="ph-seg" style="background:#ff9800"></div>
+            <div class="ph-seg" style="background:#d32f2f"></div>
+          </div>
+          <div class="ph-ptr"><div class="ph-ndl" id="ph1Ndl" style="left:72%"></div></div>
+          <div class="sp-row">
+            <label>Dosif-1</label>
+            <input type="range" min="3" max="20" value="8" oninput="document.getElementById('spD1').textContent=this.value+' L/h'">
+            <span class="sp-val" id="spD1">8 L/h</span>
+          </div>
+        </div>
+        <div class="an-card">
+          <div class="an-label">pH-02 · Reactor mezcla</div>
+          <div><span class="an-value" id="vPH2">7.34</span><span class="an-unit">pH</span></div>
+          <div class="ph-strip">
+            <div class="ph-seg" style="background:#b71c1c"></div>
+            <div class="ph-seg" style="background:#d32f2f"></div>
+            <div class="ph-seg" style="background:#ff5722"></div>
+            <div class="ph-seg" style="background:#ff9800"></div>
+            <div class="ph-seg" style="background:#8bc34a"></div>
+            <div class="ph-seg" style="background:#4caf50"></div>
+            <div class="ph-seg" style="background:#4caf50"></div>
+            <div class="ph-seg" style="background:#8bc34a"></div>
+            <div class="ph-seg" style="background:#ff9800"></div>
+            <div class="ph-seg" style="background:#d32f2f"></div>
+          </div>
+          <div class="ph-ptr"><div class="ph-ndl" id="ph2Ndl" style="left:74%"></div></div>
+          <div class="sp-row">
+            <label>Dosif-2</label>
+            <input type="range" min="3" max="20" value="6" oninput="document.getElementById('spD2').textContent=this.value+' L/h'">
+            <span class="sp-val" id="spD2">6 L/h</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">Boyas de nivel · 8 unidades</span></div>
+    <div class="card-body">
+      <div class="boya-grid" id="boyasGrid"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="card-title">Variables analógicas</span></div>
+    <div class="card-body">
+      <div class="an-grid">
+        <div class="an-card"><div class="an-label">Nivel Laguna 1</div><div><span class="an-value" id="vNL1">74</span><span class="an-unit">%</span></div><div class="bar"><div class="bar-fill ok" id="bNL1" style="width:74%"></div></div></div>
+        <div class="an-card"><div class="an-label">Nivel Laguna 2</div><div><span class="an-value" id="vNL2">61</span><span class="an-unit">%</span></div><div class="bar"><div class="bar-fill ok" id="bNL2" style="width:61%"></div></div></div>
+        <div class="an-card"><div class="an-label">Nivel Lecho 1</div><div><span class="an-value" id="vLE1">82</span><span class="an-unit">%</span></div><div class="bar"><div class="bar-fill warn" id="bLE1" style="width:82%"></div></div></div>
+        <div class="an-card"><div class="an-label">Nivel Lecho 2</div><div><span class="an-value" id="vLE2">69</span><span class="an-unit">%</span></div><div class="bar"><div class="bar-fill ok" id="bLE2" style="width:69%"></div></div></div>
+        <div class="an-card"><div class="an-label">Nivel Cisterna</div><div><span class="an-value" id="vCIST">68</span><span class="an-unit">%</span></div><div class="bar"><div class="bar-fill ok" id="bCIST" style="width:68%"></div></div></div>
+        <div class="an-card"><div class="an-label">Caudal salida</div><div><span class="an-value" id="vCAUD" style="color:#00d4ff">14.2</span><span class="an-unit">m³/h</span></div><div class="bar"><div class="bar-fill ok" id="bCAUD" style="width:57%"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB 4: CAMIÓN ══ -->
+<div class="screen" id="sc-camion">
+  <div class="card">
+    <div class="card-head"><span class="card-title">🚛 Llenado de camión cisterna</span></div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+
+      <svg width="100%" viewBox="0 0 340 155" xmlns="http://www.w3.org/2000/svg" style="background:#040810;border-radius:6px">
+        <rect width="340" height="155" fill="#040810"/>
+        <polygon points="15,62 95,62 102,72 99,118 93,128 18,128 12,118 9,72" fill="#c0bdb0" stroke="#808070" stroke-width="1.5"/>
+        <ellipse cx="55" cy="62" rx="41" ry="7.5" fill="#d0ccbc" stroke="#808070" stroke-width="1.5"/>
+        <rect x="12" y="88" width="90" height="35" rx="3" fill="#40a060" opacity=".4" id="truckCistFill"/>
+        <text x="54" y="82" fill="#1a2a18" font-size="7.5" text-anchor="middle" font-weight="700" font-family="Inter" id="trCistPct">68%</text>
+        <text x="54" y="138" fill="#c8dce8" font-size="8" text-anchor="middle" font-weight="600" font-family="Inter">CISTERNA</text>
+        <line x1="102" y1="98" x2="152" y2="98" stroke="#00d4ff" stroke-width="2" stroke-dasharray="4,2" marker-end="url(#arr)" id="trFlowLine"/>
+        <text x="127" y="93" fill="#00d4ff" font-size="6.5" text-anchor="middle" font-family="Inter">carga activa</text>
+        <rect x="155" y="78" width="34" height="46" rx="3" fill="#0e1e3a" stroke="#3d8bff" stroke-width="1"/>
+        <rect x="158" y="82" width="28" height="16" rx="1" fill="#080e20"/>
+        <rect x="189" y="72" width="138" height="50" rx="10" fill="#101828" stroke="#2a4a70" stroke-width="1.5"/>
+        <rect x="193" y="77" width="0" height="40" rx="6" fill="#00d4ff" opacity=".6" id="trTankFill"/>
+        <text x="258" y="102" fill="#5a8ab0" font-size="8.5" text-anchor="middle" font-weight="600" font-family="Inter">CAMIÓN CISTERNA</text>
+        <text x="258" y="115" fill="#3a5a78" font-size="8" text-anchor="middle" id="trTankPct" font-family="Inter">0%</text>
+        <circle cx="182" cy="130" r="7" fill="#08101a" stroke="#3a5a70" stroke-width="1.5"/>
+        <circle cx="210" cy="130" r="7" fill="#08101a" stroke="#3a5a70" stroke-width="1.5"/>
+        <circle cx="255" cy="130" r="7" fill="#08101a" stroke="#3a5a70" stroke-width="1.5"/>
+        <circle cx="315" cy="130" r="7" fill="#08101a" stroke="#3a5a70" stroke-width="1.5"/>
+        <rect x="150" y="80" width="7" height="28" rx="2" fill="#111" stroke="#ffb300" stroke-width="1"/>
+        <circle cx="153.5" cy="87" r="4.5" id="trSondaAlto" fill="#1a0808" stroke="#ff4757" stroke-width="1.5"/>
+        <text x="153.5" y="90" fill="#ff4757" font-size="5.5" text-anchor="middle" font-weight="700" font-family="Inter">A</text>
+        <circle cx="153.5" cy="103" r="4.5" id="trSondaBajo" fill="#00c97a" stroke="#00c97a" stroke-width="1.5"/>
+        <text x="153.5" y="106" fill="#fff" font-size="5.5" text-anchor="middle" font-weight="700" font-family="Inter">B</text>
+        <text x="120" y="86" fill="#ff4757" font-size="6.5" text-anchor="middle" font-family="Inter">ALTO</text>
+        <text x="120" y="105" fill="#00c97a" font-size="6.5" text-anchor="middle" font-family="Inter">BAJO</text>
+        <text x="258" y="150" fill="#2a3a50" font-size="6.5" text-anchor="middle" font-family="Inter">2 sondas · detención automática antirrebalse</text>
+      </svg>
+
+      <!-- Estado -->
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:var(--text3);font-weight:500">Estado</span>
+        <span class="trk-state" id="trStatus" style="color:var(--text2)">En espera</span>
+      </div>
+
+      <!-- Medidores -->
+      <div class="an-grid">
+        <div class="an-card" style="padding:10px">
+          <div class="an-label">Nivel camión</div>
+          <div><span class="an-value" id="trLvlVal" style="font-size:20px">0</span><span class="an-unit">%</span></div>
+          <div class="bar"><div class="bar-fill ok" id="trLvlBar" style="width:0%"></div></div>
+        </div>
+        <div class="an-card" style="padding:10px">
+          <div class="an-label">Vol. cargado</div>
+          <div><span class="an-value" id="trVol" style="font-size:20px;color:#00d4ff">0.0</span><span class="an-unit">m³</span></div>
+          <div class="bar"><div class="bar-fill ok" id="trVolBar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- Sondas -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div class="boya" style="padding:10px;flex-direction:row;gap:10px;justify-content:flex-start">
+          <div class="boya-led off" id="trSondaALED" style="width:12px;height:12px;flex-shrink:0"></div>
+          <div>
+            <div style="font-size:10px;font-weight:600;color:var(--text)">Sonda ALTO</div>
+            <div style="font-size:9px;color:var(--text3)" id="trSondaALbl">Libre</div>
+          </div>
+        </div>
+        <div class="boya" style="padding:10px;flex-direction:row;gap:10px;justify-content:flex-start">
+          <div class="boya-led on" id="trSondaBLED" style="width:12px;height:12px;flex-shrink:0"></div>
+          <div>
+            <div style="font-size:10px;font-weight:600;color:var(--text)">Sonda BAJO</div>
+            <div style="font-size:9px;color:var(--green)" id="trSondaBLbl">Sumergida</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botones -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button onclick="startFill()" class="trk-btn start" id="btnStart">▶ Iniciar llenado</button>
+        <button onclick="stopFill()" class="trk-btn stop" id="btnStop">⏹ Detener</button>
+      </div>
+      <div class="trk-hint">Detención automática al activar sonda ALTO · evita rebalse</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<div class="footer">HMI v2.0 · Lixiviados · PLC S7-1200 · 9 EB + 4 Agitadores + 2 pH + 8 Boyas</div>
+
+<script>
+// CLOCK
+setInterval(()=>document.getElementById('clk').textContent=new Date().toLocaleTimeString('es-AR'),1000);
+document.getElementById('clk').textContent=new Date().toLocaleTimeString('es-AR');
+
+// TABS
+function showTab(id,el){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sc-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+// MODE
+let mode='auto';
+function setMode(m){
+  mode=m;
+  ['mAuto','mMan','mStop'].forEach(id=>document.getElementById(id).classList.remove('active','auto','manual','emg'));
+  const map={auto:{id:'mAuto',cls:'auto',lbl:'AUTOMÁTICO',color:'var(--accent)'},manual:{id:'mMan',cls:'manual',lbl:'MANUAL',color:'var(--amber)'},stop:{id:'mStop',cls:'emg',lbl:'⛔ PARO DE EMERGENCIA',color:'var(--red)'}};
+  const {id,cls,lbl,color}=map[m];
+  const btn=document.getElementById(id);
+  btn.classList.add('active',cls);
+  const el=document.getElementById('modeLbl');
+  el.textContent=lbl; el.style.color=color;
+  if(m==='stop'){
+    addAlarm('crit','⛔ PARO DE EMERGENCIA — todos los equipos detenidos');
+    Object.keys(equipState).forEach(k=>{equipState[k]=false});renderEquip();
+  }
+}
+
+// EQUIPOS
+const bombas=[
+  {id:'B01',name:'B-01 Laguna 1',icon:'⚙',tag:'Extracción'},
+  {id:'B02',name:'B-02 Laguna 1',icon:'⚙',tag:'Extracción'},
+  {id:'B03',name:'B-03 Laguna 2',icon:'⚙',tag:'Extracción'},
+  {id:'B04',name:'B-04 Laguna 2',icon:'⚙',tag:'Extracción'},
+  {id:'B05',name:'B-05 Lecho 1',icon:'⚙',tag:'Tratamiento'},
+  {id:'B06',name:'B-06 Lecho 2',icon:'⚙',tag:'Tratamiento'},
+  {id:'B07',name:'B-07 Cisterna',icon:'⚙',tag:'Salida'},
+  {id:'B08',name:'B-08 Recirculación',icon:'⚙',tag:'Recirc.'},
+  {id:'B09',name:'B-09 Camión',icon:'⚙',tag:'Llenado'},
+];
+const agitadores=[
+  {id:'M01',name:'Agit. M-01',icon:'🔄',tag:'Dosif-1'},
+  {id:'M02',name:'Agit. M-02',icon:'🔄',tag:'Dosif-2'},
+  {id:'M03',name:'Agit. M-03',icon:'🔄',tag:'Dosif-3'},
+  {id:'M04',name:'Agit. M-04',icon:'🔄',tag:'Reactor'},
+];
+let equipState={};
+[...bombas,...agitadores].forEach(e=>equipState[e.id]=true);
+
+function buildEquipUI(){
+  function makeCard(e){
+    const d=document.createElement('div');
+    d.className='eq-card run'; d.id='eq_'+e.id;
+    d.innerHTML=`<div class="eq-tag">${e.tag}</div><div class="eq-icon">${e.icon}</div><div class="eq-name">${e.name}</div><div class="eq-state on" id="st_${e.id}">Marcha</div><div class="eq-amp" id="amp_${e.id}">4.2 A</div>`;
+    d.onclick=()=>toggleEquip(e.id); return d;
+  }
+  bombas.forEach(e=>document.getElementById('bombasGrid').appendChild(makeCard(e)));
+  agitadores.forEach(e=>document.getElementById('agitGrid').appendChild(makeCard(e)));
+}
+buildEquipUI();
+
+function toggleEquip(id){
+  if(mode==='auto'){addAlarm('warn','⚠ Modo AUTO — cambie a MANUAL para operar individualmente');return;}
+  if(mode==='stop'){addAlarm('crit','⛔ Paro activo — desactive antes de operar');return;}
+  equipState[id]=!equipState[id]; renderEquip();
+  addAlarm(equipState[id]?'ok':'warn',(equipState[id]?'✓ Arranque: ':'⚠ Paro: ')+id);
+}
+
+function renderEquip(){
+  [...bombas,...agitadores].forEach(e=>{
+    const on=equipState[e.id];
+    const card=document.getElementById('eq_'+e.id);
+    const st=document.getElementById('st_'+e.id);
+    if(!card||!st)return;
+    card.className='eq-card '+(on?'run':'stop');
+    st.textContent=on?'Marcha':'Paro'; st.className='eq-state '+(on?'on':'off');
+  });
+  const svgMap={B01:'svgB01',B02:'svgB02',B03:'svgB03',B04:'svgB04',B05:'svgB05',B06:'svgB06',B07:'svgB07',B08:'svgB08'};
+  Object.entries(svgMap).forEach(([id,svgId])=>{
+    const el=document.getElementById(svgId);
+    const st=document.getElementById(svgId+'st');
+    if(el)el.setAttribute('stroke',equipState[id]?'#00d4ff':'#263547');
+    if(st){st.textContent=equipState[id]?'ON':'OFF';st.setAttribute('fill',equipState[id]?'#00d4ff':'#3a5168');}
+  });
+}
+
+// BOYAS
+const boyasDef=[
+  {id:'B1',lbl:'B1\nLag1 Alto',on:true},
+  {id:'B2',lbl:'B2\nLag1 Bajo',on:true},
+  {id:'B3',lbl:'B3\nLag2 Alto',on:true},
+  {id:'B4',lbl:'B4\nLag2 Bajo',on:false},
+  {id:'B5',lbl:'B5\nLch1 Alto',on:true},
+  {id:'B6',lbl:'B6\nLch1 Bajo',on:true},
+  {id:'B7',lbl:'B7\nLch2 Alto',on:false},
+  {id:'B8',lbl:'B8\nLch2 Bajo',on:true},
+];
+const bg2=document.getElementById('boyasGrid');
+boyasDef.forEach(b=>{
+  const d=document.createElement('div'); d.className='boya'; d.id='boya_'+b.id;
+  const lines=b.lbl.split('\n');
+  d.innerHTML=`<div class="boya-led ${b.on?'on':'off'}" id="led_${b.id}"></div><div class="boya-lbl">${lines[0]}<br>${lines[1]}</div>`;
+  bg2.appendChild(d);
+});
+
+// ALARMAS
+let alarmCount=0; const als=[];
+function addAlarm(type,msg){
+  const t=new Date().toLocaleTimeString('es-AR');
+  als.unshift({type,msg,t}); if(als.length>10)als.pop();
+  if(type!=='ok')alarmCount++; else if(alarmCount>0)alarmCount--;
+  document.getElementById('alCount').textContent=alarmCount;
+  document.getElementById('alList').innerHTML=als.map(a=>`<div class="al ${a.type}"><span class="al-time">${a.t}</span><span>${a.msg}</span></div>`).join('');
+}
+
+// LLENADO CAMIÓN
+let fillActive=false,truckLevel=0,fillTimer=null;
+function startFill(){
+  if(fillActive)return;
+  if(truckLevel>=100){addAlarm('crit','⛔ Camión LLENO — vacíe antes de iniciar');return;}
+  fillActive=true; equipState['B09']=true; renderEquip();
+  const st=document.getElementById('trStatus');
+  st.textContent='Llenando...'; st.style.color='var(--green)';
+  addAlarm('ok','✓ Inicio llenado — B-09 arrancada');
+  fillTimer=setInterval(()=>{
+    truckLevel=Math.min(100,truckLevel+1.2); updateTruckUI();
+    if(truckLevel>=100)stopFill(true);
+  },500);
+}
+function stopFill(auto=false){
+  if(!fillActive&&!auto)return;
+  fillActive=false; clearInterval(fillTimer);
+  equipState['B09']=false; renderEquip();
+  const st=document.getElementById('trStatus');
+  st.textContent=auto?'Detenido auto — camión lleno':'Detenido manual';
+  st.style.color=auto?'var(--red)':'var(--text3)';
+  if(auto){
+    document.getElementById('trSondaALED').className='boya-led on';
+    document.getElementById('trSondaALbl').textContent='Activada';
+    document.getElementById('trSondaALbl').style.color='var(--red)';
+    addAlarm('crit','🔴 Sonda ALTO activada — detención automática');
+  } else {
+    addAlarm('warn','⚠ Llenado detenido manualmente');
+  }
+}
+function updateTruckUI(){
+  const v=truckLevel;
+  document.getElementById('trLvlVal').textContent=v.toFixed(0);
+  document.getElementById('trLvlBar').style.width=v+'%';
+  document.getElementById('trTankPct').textContent=v.toFixed(0)+'%';
+  document.getElementById('trVol').textContent=(v/100*15).toFixed(1);
+  document.getElementById('trVolBar').style.width=v+'%';
+  document.getElementById('trTankFill').setAttribute('width',(130*(v/100)).toFixed(0));
+  document.getElementById('trLvlBar').className='bar-fill '+(v>85?'crit':v>60?'warn':'ok');
+  if(v>=85&&v<100){
+    document.getElementById('trSondaALED').className='boya-led on';
+    document.getElementById('trSondaALbl').textContent='Prealerta';
+    document.getElementById('trSondaALbl').style.color='var(--amber)';
+  }
+}
+
+// SIMULACIÓN
+let tick=0;
+function n(v,a){return+(v+(Math.random()-.5)*a).toFixed(2)}
+setInterval(()=>{
+  tick++;
+  const pH1=n(7.2,.15),pH2=n(7.35,.12);
+  const ph1el=document.getElementById('vPH1'); ph1el.textContent=pH1.toFixed(2);
+  ph1el.style.color=pH1<6.5||pH1>8.5?'var(--red)':pH1<7||pH1>7.6?'var(--amber)':'var(--green)';
+  const ph2el=document.getElementById('vPH2'); ph2el.textContent=pH2.toFixed(2);
+  ph2el.style.color=pH2<6.5||pH2>8.5?'var(--red)':pH2<7||pH2>7.6?'var(--amber)':'var(--green)';
+  document.getElementById('ph1Ndl').style.left=((pH1-5)/5*100).toFixed(0)+'%';
+  document.getElementById('ph2Ndl').style.left=((pH2-5)/5*100).toFixed(0)+'%';
+
+  const nl1=n(74,2),nl2=n(61,2),le1=n(82,2),le2=n(69,2),cist=n(68,1.5);
+  ['vNL1','vNL2','vLE1','vLE2','vCIST'].forEach((id,i)=>document.getElementById(id).textContent=[nl1,nl2,le1,le2,cist][i].toFixed(0));
+  document.getElementById('vCAUD').textContent=n(14.2,.8).toFixed(1);
+  setBar('bNL1',nl1,'ok'); setBar('bNL2',nl2,'ok');
+  setBar('bLE1',le1,le1>85?'crit':'warn');
+  setBar('bLE2',le2,'ok'); setBar('bCIST',cist,cist<25?'crit':cist<35?'warn':'ok');
+
+  document.getElementById('lagTxt1').textContent='Nivel: '+nl1.toFixed(0)+'% · B1✓ B2✓';
+  document.getElementById('lagTxt2').textContent='Nivel: '+nl2.toFixed(0)+'% · B3✓ B4✓';
+  document.getElementById('lech1Lvl').textContent=le1.toFixed(0)+'%';
+  document.getElementById('lech2Lvl').textContent=le2.toFixed(0)+'%';
+  document.getElementById('cistLvl').textContent=cist.toFixed(0)+'%';
+
+  const bStates=[nl1>60,nl1>20,nl2>60,nl2>20,le1>70,le1>20,le2>70,le2>20];
+  boyasDef.forEach((b,i)=>{
+    const led=document.getElementById('led_'+b.id);
+    if(led)led.className='boya-led '+(bStates[i]?'on':'off');
+  });
+
+  if(nl1>90&&tick%40===0)addAlarm('crit','🔴 Laguna 1 NIVEL ALTO: '+nl1.toFixed(0)+'%');
+  if(le1>88&&tick%50===0)addAlarm('crit','🔴 Lecho 1 NIVEL ALTO: '+le1.toFixed(0)+'%');
+  if(pH1<6.5&&tick%35===0)addAlarm('crit','🔴 pH-01 BAJO: '+pH1.toFixed(2));
+  if(pH2>8.5&&tick%45===0)addAlarm('warn','⚠ pH-02 ALTO: '+pH2.toFixed(2));
+  if(cist<25&&tick%30===0)addAlarm('warn','⚠ Cisterna NIVEL BAJO: '+cist.toFixed(0)+'%');
+},1200);
+
+function setBar(id,v,cls){
+  const el=document.getElementById(id); if(!el)return;
+  el.style.width=Math.max(0,Math.min(100,v)).toFixed(0)+'%';
+  el.className='bar-fill '+cls;
+}
+
+addAlarm('ok','✓ Sistema iniciado — PLC online · Modo AUTO');
+</script>
+</body>
+</html>
